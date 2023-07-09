@@ -1,0 +1,214 @@
+class liner:
+    def __init__(self,df,target,unique= 'NA'):
+        self.df = df
+        self.target = target
+        self.unique = unique
+
+        open('output.txt', 'w').close()
+        with open("output.txt", "a") as f:
+        
+        #Setting the target variable
+            a = list(df.columns)
+            if type(target) == int:
+                t = a[target]
+                df['Target'] = df[t]
+                df.drop(t,axis=1,inplace=True)
+            else:
+                df['Target'] = df[target]
+                df.drop(target,axis=1,inplace=True)
+        
+        
+            #Step 1: Data import
+            print('Data Info\n',file=f)
+            a = print('\033[1mData Info  \033[0m\n')
+
+            rows = df.shape[0]
+            cols = df.shape[1]
+            print(f'There are {rows} rows and {cols} columns present in the dataset\n',file=f)
+            print(f'There are {rows} rows and {cols} columns present in the dataset\n')
+        
+            #Step 2: EDA
+            #Sub-step1 : Removing unique identifier column
+            print('EDA\n',file=f)
+            print('\033[1mEDA  \033[0m\n')
+        
+            list_of_cols = list(df.columns)
+            if unique=='NA':
+                print('No unique identifier',file=f)
+                print('No unique identifier')
+            else:
+                if type(unique) == int:
+                    a = list_of_cols[unique]
+                    df.drop(a,axis=1,inplace=True)
+                    print(f'Unique identifier {a} has been removed\n')
+                    print(f'Unique identifier {a} has been removed\n',file=f)
+                else:
+                    df.drop(unique,axis=1,inplace=True)
+                    print(f'Unique identifier {unique} has been removed\n')
+                    print(f'Unique identifier {unique} has been removed\n',file=f)
+        
+            #Sub-step2 :Removing non-numeric columns
+        
+            a = list(df.columns)
+            lis = []
+            for i in a:
+                if df[i].dtypes =='O':
+                    df.drop(i,axis=1,inplace=True)
+                    lis.append(i)
+            print("Linear regression model can't obtain good results on non-numeric data hence some colunms containing non-numeric data have been dropped")
+            print(f'The deleted columns are:{lis}\n')
+            print("Linear regression model can't obtain good results on non-numeric data hence some colunms containing non-numeric data have been dropped",file=f)
+            print(f'The deleted columns are:{lis}\n',file=f)
+        
+            #Sub-step3: Handling nulls
+            print('\033[1mMissing value  \033[0m\n')
+            print('Missing value\n',file = f)
+            lis_cols = list(df.columns)
+        
+            for i in lis_cols:
+                if df[i].isna().sum()!=0:
+                    b = df[i].isna().sum()
+                    print(f'{i} column contains {b} nulls')
+                    print(f'{i} column contains {b} nulls',file=f)
+            print('\n')
+            print('\n',file=f)
+        
+            while df.isnull().sum().sum() > 0:
+                a = dict(df.isnull().sum()[df.isnull().sum()>0])
+                b = list(a.keys())
+    
+        
+                for i in b:
+                    a=list(df[i].isnull().sum()[df[i].isnull().sum()/df[i].count()*100>40])
+                    if a !=[]:
+                    #if df[i].isnull().sum()>800:
+                        df.drop([i],axis=1,inplace=True)
+                        print('Dropped column is ',i)
+                        print('Dropped column is ',i,file=f)
+                        continue
+                
+                    c = dict(df[i].value_counts())
+                    d = list(c)
+            
+                    if len(d)>100:
+                        df[i].fillna(df[i].mean(),inplace=True)
+                    e = d[0]
+                    df[i].fillna(e,inplace=True)
+                df=df.iloc[: ,:]
+                print('All the null values have been handled')
+                print('Columns containing nulls greater than 40% have been dropped')
+                print('All the other columns have been filled with either the max occuring element or the mean of the column\n')
+                print('All the null values have been handled',file=f)
+                print('Columns containing nulls greater than 40% have been dropped',file=f)
+                print('All the other columns have been filled with either the max occuring element or the mean of the column\n',file=f)
+    
+            #Sub-step4: Outliers
+            print('\033[1mOutliers  \033[0m\n')
+            print('Outliers\n',file=f)
+            import seaborn as sns
+            import matplotlib.pyplot as plt
+    
+            temp = 0
+            c = list(df.columns)
+            for i in c:
+                q1 = df[i].quantile(0.25)
+                q3 = df[i].quantile(0.75)
+                iqr = q3-q1
+    
+                lowerlimit = q1-1.5*iqr
+                upperlimit = q3+1.5*iqr
+                if df[i].min()<lowerlimit or df[i].max()>upperlimit:
+                    temp = 1
+                    print(f'{i} contains outliers ')
+                    print(f'{i} contains outliers ',file=f)
+            '''if temp==1:
+            plt.figure(figsize=(6,6))
+            sns.boxplot(data=df)'''
+            
+            for i in c:
+                q1 = df[i].quantile(0.25)
+                q3 = df[i].quantile(0.75)
+                iqr = q3-q1
+
+                lowerlimit = q1-1.5*iqr
+                upperlimit = q3+1.5*iqr
+                if df[i].min()<lowerlimit or df[i].max()>upperlimit:
+                    df[i]=df[i].clip(lower = lowerlimit,upper = upperlimit)
+
+            print('Outliers have been treated using Winsorizing technique\n')
+            print('Outliers have been treated using Winsorizing technique\n',file=f)
+        
+            #Step3 : Data Partition
+            print('\033[1mData Partition  \033[0m\n')
+            print('Data Partition\n',file=f)
+
+            from sklearn.model_selection import train_test_split
+            train , test = train_test_split(df,train_size = 0.7,random_state=1)
+
+            train_x = train.iloc[: ,:-1]
+            train_y = train.iloc[:,-1]
+
+            test_x = test.iloc[: ,:-1]
+            test_y = test.iloc[:,-1]
+
+            print('Data has been splitted into training and testing data where 70% of the data will be utilized in training and the\n remaining 30% for testing.\n')
+            print('Data has been splitted into training and testing data where 70% of the data will be utilized in training and the\n remaining 30% for testing.\n',file=f)
+
+            #Step4:Machine learning - Linear regression
+            print('\033[1mModel  \033[0m\n')
+            print('Model\n',file=f)
+            print('Linear Regression model will be applied on the data.\n')
+            print('Linear Regression model will be applied on the data.\n',file=f)
+
+            #Step5: Model
+            from sklearn.linear_model import LinearRegression
+            lr = LinearRegression()
+
+            lr.fit(train_x,train_y)
+
+            #Step6:Prediction on training data
+            print('\033[1mPrediction on training data  \033[0m\n')
+            print('Prediction on training data',file=f)
+            predict = lr.predict(train_x)
+
+            from sklearn.metrics import r2_score
+
+            R_square = r2_score(train_y,predict)
+            acc = round(((R_square)*100),2)
+
+            print(f'R square on training data is {R_square}')
+            print(f'Which indicates accuracy of the model is {acc}%\n')
+            print(f'R square on training data is {R_square}',file=f)
+            print(f'Which indicates accuracy of the model is {acc}%\n',file=f)
+
+            #Step7: Prediction on testing data
+            print('\033[1mPrediction on testing data  \033[0m\n')
+            print('Prediction on testing data\n',file=f)
+            predict_test = lr.predict(test_x)
+
+            from sklearn.metrics import r2_score
+
+            R_square2 = r2_score(test_y,predict_test)
+            acc2 = round(((R_square)*100),2)
+
+            error = test_y - predict_test 
+
+            print(f'R square on training data is {R_square2}')
+            print(f'Which indicates accuracy of the model is {acc2}%')
+            print(f'R square on training data is {R_square2}',file=f)
+            print(f'Which indicates accuracy of the model is {acc2}%',file=f)
+
+            #Step8: RMSE
+
+            import numpy as np
+
+            RMSE = np.sqrt(np.mean(np.square(error)))
+            print(f'RMSE : {RMSE}')
+            print(f'RMSE : {RMSE}',file=f)
+        
+        
+                
+        
+        
+        
+        
